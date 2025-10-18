@@ -1,0 +1,76 @@
+{
+  "gameCard": {
+    "name": "Game Card",
+    "colors": {
+      "border": "#000000",
+      "outerFrame": "#e3e3e3",
+      "headerBackground": "#7a5e4a",
+      "headerBorder": "#000000",
+      "mainBackground": "#d9c5b2",
+      "footerBackground": "#e3e3e3",
+      "footerBorder": "#000000",
+      "defaultText": "#2c1e14"
+    }
+  },
+  "steamRetro": {
+    "name": "Steam Retro",
+    "colors": {
+      "border": "#000000",
+      "outerFrame": "#e3e3e3",
+      "headerBackground": "#7a5e4a",
+      "headerBorder": "#000000",
+      "mainBackground": "#d9c5b2",
+      "footerBackground": "#e3e3e3",
+      "footerBorder": "#000000",
+      "defaultText": "#2c1e14"
+    }
+  },
+  "magic": {
+    "name": "Magic Card",
+    "colors": {
+      "border": "#c8503c",
+      "outerFrame": "#f5e6d3",
+      "titleBar": "#f5e6d3",
+      "titleBarBorder": "#8b4513",
+      "imageFrame": "#000000",
+      "typeBox": "#f5e6d3",
+      "typeBoxBorder": "#8b4513",
+      "textBox": "#f5e6d3",
+      "cornerBox": "#f5e6d3",
+      "cornerBoxBorder": "#8b4513",
+      "defaultText": "#000000"
+    }
+  },
+  "classic": {
+    "name": "Classic",
+    "colors": {
+      "border": "#c8503c",
+      "outerFrame": "#f5e6d3",
+      "titleBar": "#f5e6d3",
+      "titleBarBorder": "#8b4513",
+      "imageFrame": "#000000",
+      "typeBox": "#f5e6d3",
+      "typeBoxBorder": "#8b4513",
+      "textBox": "#f5e6d3",
+      "cornerBox": "#f5e6d3",
+      "cornerBoxBorder": "#8b4513",
+      "defaultText": "#000000"
+    }
+  },
+  "modern": {
+    "name": "Modern",
+    "colors": {
+      "border": "#000000",
+      "outerFrame": "#aed6f1",
+      "titleBar": "#eaf2f8",
+      "titleBarBorder": "#5499c7",
+      "imageFrame": "#000000",
+      "typeBox": "#eaf2f8",
+      "typeBoxBorder": "#5499c7",
+      "textBox": "#eaf2f8",
+      "cornerBox": "#eaf2f8",
+      "cornerBoxBorder": "#5499c7",
+      "defaultText": "#000000"
+    }
+  }
+}
