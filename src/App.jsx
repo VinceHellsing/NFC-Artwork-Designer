@@ -70,6 +70,50 @@ function wrapText(context, text, x, y, maxWidth, lineHeight, align) {
   });
 }
 
+function renderMultilineText(context, text, x, y, maxWidth, lineHeight, align) {
+  // Split by newlines first, then wrap each line
+  const paragraphs = text.split("\n");
+  const allLines = [];
+
+  paragraphs.forEach((paragraph) => {
+    if (paragraph.trim() === "") {
+      allLines.push("");
+      return;
+    }
+    const words = paragraph.split(" ");
+    let line = "";
+
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + " ";
+      const metrics = context.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        allLines.push(line.trim());
+        line = words[n] + " ";
+      } else {
+        line = testLine;
+      }
+    }
+    if (line.trim()) {
+      allLines.push(line.trim());
+    }
+  });
+
+  context.textAlign = align;
+  let lineX = x;
+  if (align === "center") {
+    lineX = x + maxWidth / 2;
+  } else if (align === "right") {
+    lineX = x + maxWidth;
+  }
+
+  allLines.forEach((l, i) => {
+    context.fillText(l, lineX, y + i * lineHeight);
+  });
+
+  return allLines.length;
+}
+
 const SidebarSection = ({ title, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -199,6 +243,111 @@ TextControl.propTypes = {
   onUpdate: PropTypes.func.isRequired,
 };
 
+const ShortcutTextControl = ({ label, value, onUpdate }) => {
+  const fonts = [
+    "Arial",
+    "Verdana",
+    "Georgia",
+    "Times New Roman",
+    "Courier New",
+    "Lucida Console",
+    "Impact",
+    "Comic Sans MS",
+    "MPlantin",
+    "Beleren",
+    "Thraex Magnus",
+    "Thraex Sans",
+  ];
+
+  return (
+    <div className="space-y-3 pl-2">
+      <h4 className="font-semibold text-slate-300 text-sm">{label}</h4>
+      <textarea
+        value={value.text}
+        onChange={(e) => onUpdate({ ...value, text: e.target.value })}
+        className="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm min-h-[120px] resize-y"
+        placeholder="Cmd+C: Copy
+Cmd+V: Paste
+Cmd+Z: Undo"
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-slate-400">Size</label>
+          <input
+            type="number"
+            value={value.fontSize}
+            onChange={(e) =>
+              onUpdate({
+                ...value,
+                fontSize: parseInt(e.target.value, 10) || 10,
+              })
+            }
+            className="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400">Color</label>
+          <input
+            type="color"
+            value={value.color}
+            onChange={(e) => onUpdate({ ...value, color: e.target.value })}
+            className="w-full h-10 p-0 border-none cursor-pointer bg-slate-700 rounded-lg"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="text-xs text-slate-400">Font Style</label>
+        <select
+          value={value.fontStyle}
+          onChange={(e) => onUpdate({ ...value, fontStyle: e.target.value })}
+          className="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm mt-1"
+        >
+          {fonts.map((font) => (
+            <option key={font} value={font}>
+              {font}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="text-xs text-slate-400">Alignment</label>
+        <div className="flex items-center gap-1 mt-1">
+          <button
+            onClick={() => onUpdate({ ...value, align: "left" })}
+            className={`p-2 rounded-lg ${value.align === "left" ? "bg-blue-600 text-white" : "bg-slate-600 text-slate-300"}`}
+          >
+            <AlignLeft size={16} />
+          </button>
+          <button
+            onClick={() => onUpdate({ ...value, align: "center" })}
+            className={`p-2 rounded-lg ${value.align === "center" ? "bg-blue-600 text-white" : "bg-slate-600 text-slate-300"}`}
+          >
+            <AlignCenter size={16} />
+          </button>
+          <button
+            onClick={() => onUpdate({ ...value, align: "right" })}
+            className={`p-2 rounded-lg ${value.align === "right" ? "bg-blue-600 text-white" : "bg-slate-600 text-slate-300"}`}
+          >
+            <AlignRight size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+ShortcutTextControl.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.shape({
+    text: PropTypes.string.isRequired,
+    fontSize: PropTypes.number.isRequired,
+    color: PropTypes.string.isRequired,
+    fontStyle: PropTypes.string.isRequired,
+    align: PropTypes.string.isRequired,
+  }).isRequired,
+  onUpdate: PropTypes.func.isRequired,
+};
+
 // --- MAIN APP COMPONENT ---
 
 function App() {
@@ -255,6 +404,13 @@ function App() {
       imageTransform: { x: 50, y: 50, scale: 1 },
       headerImageTransform: { x: 50, y: 50, scale: 1 },
       outerFrameDesign: "solid",
+      shortcutText: {
+        text: "Cmd+C: Copy\nCmd+V: Paste\nCmd+Z: Undo",
+        fontSize: 16,
+        align: "left",
+        color: TEMPLATES.gameCard.colors.defaultText,
+        fontStyle: "Arial",
+      },
     },
   ]);
 
@@ -608,6 +764,102 @@ function App() {
           );
         }
         ctx.restore();
+      } else if (card.template === "shortcuts") {
+        // --- SHORTCUTS TEMPLATE ---
+        // Draw background image covering entire card
+        const imageX = 0;
+        const imageY = 0;
+        const imageW = W_design;
+        const imageH = H_design;
+
+        ctx.save();
+        roundRect(ctx, imageX, imageY, imageW, imageH, BORDER_RAD).clip();
+
+        if (card.image && images[card.image]) {
+          const img = images[card.image];
+          const imgAspectRatio = img.width / img.height;
+          const cardAspectRatio = imageW / imageH;
+
+          // Calculate scale to cover entire card (like CSS background-size: cover)
+          let baseScale = 1;
+          if (imgAspectRatio > cardAspectRatio) {
+            // Image is wider - scale to fit height, crop width
+            baseScale = imageH / img.height;
+          } else {
+            // Image is taller - scale to fit width, crop height
+            baseScale = imageW / img.width;
+          }
+
+          // Apply user's zoom transform
+          const userScale = card.imageTransform.scale;
+          const finalScale = baseScale * userScale;
+
+          // Calculate dimensions after scaling
+          const scaledWidth = img.width * finalScale;
+          const scaledHeight = img.height * finalScale;
+
+          // Center the image, then offset based on transform
+          // Transform x/y (0-100) maps to position: 0 = left/top, 50 = center, 100 = right/bottom
+          const centerX = (imageW - scaledWidth) / 2;
+          const centerY = (imageH - scaledHeight) / 2;
+          const offsetX = centerX + (scaledWidth - imageW) * ((card.imageTransform.x - 50) / 50);
+          const offsetY = centerY + (scaledHeight - imageH) * ((card.imageTransform.y - 50) / 50);
+
+          // Draw image covering the entire card
+          ctx.drawImage(
+            img,
+            offsetX,
+            offsetY,
+            scaledWidth,
+            scaledHeight,
+          );
+        } else {
+          // No image - fill with a default background
+          ctx.fillStyle = "#2c3e50";
+          ctx.fillRect(imageX, imageY, imageW, imageH);
+        }
+        ctx.restore();
+
+        // Render shortcut text overlaid on image
+        if (card.shortcutText && card.shortcutText.text) {
+          const PADDING = W_design * 0.05;
+          const textX = PADDING;
+          const textY = PADDING;
+          const textWidth = W_design - PADDING * 2;
+          const textHeight = H_design - PADDING * 2;
+          const lineHeight = card.shortcutText.fontSize * 1.4;
+
+          // Add text shadow for readability
+          ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+
+          ctx.fillStyle = card.shortcutText.color;
+          ctx.font = `${card.shortcutText.fontSize}px ${card.shortcutText.fontStyle}`;
+          ctx.textBaseline = "top";
+
+          renderMultilineText(
+            ctx,
+            card.shortcutText.text,
+            textX,
+            textY,
+            textWidth,
+            lineHeight,
+            card.shortcutText.align,
+          );
+
+          // Reset shadow
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+        }
+
+        // Draw border as stroke (after image and text)
+        ctx.strokeStyle = card.colors.border;
+        ctx.lineWidth = 3;
+        roundRect(ctx, 0, 0, W_design, H_design, BORDER_RAD).stroke();
       } else {
         // --- EXISTING LOGIC FOR OTHER TEMPLATES ---
         ctx.fillStyle = card.colors.border;
@@ -1151,6 +1403,13 @@ function App() {
       imageTransform: { x: 50, y: 50, scale: 1 },
       headerImageTransform: { x: 50, y: 50, scale: 1 },
       outerFrameDesign: "solid",
+      shortcutText: {
+        text: "Cmd+C: Copy\nCmd+V: Paste\nCmd+Z: Undo",
+        fontSize: 16,
+        align: "left",
+        color: defaultColors.defaultText,
+        fontStyle: "Arial",
+      },
     };
     setCards([...cards, newCard]);
     setActiveCardId(nextId);
@@ -1171,8 +1430,15 @@ function App() {
     const newCard = {
       ...activeCard,
       id: nextId,
-      title: { ...activeCard.title, text: `${activeCard.title.text} (Copy)` },
     };
+    // Update title text if it exists
+    if (newCard.title) {
+      newCard.title = { ...newCard.title, text: `${newCard.title.text} (Copy)` };
+    }
+    // Update shortcut text if it exists
+    if (newCard.shortcutText) {
+      newCard.shortcutText = { ...newCard.shortcutText };
+    }
     setCards([...cards, newCard]);
     setActiveCardId(nextId);
     setNextId(nextId + 1);
@@ -1441,10 +1707,21 @@ function App() {
                     const newTemplateName = e.target.value;
                     const newTemplate = TEMPLATES[newTemplateName];
                     if (newTemplate) {
-                      updateCard({
+                      const updates = {
                         template: newTemplateName,
                         colors: { ...newTemplate.colors },
-                      });
+                      };
+                      // Initialize shortcutText if switching to shortcuts template
+                      if (newTemplateName === "shortcuts" && !activeCard?.shortcutText) {
+                        updates.shortcutText = {
+                          text: "Cmd+C: Copy\nCmd+V: Paste\nCmd+Z: Undo",
+                          fontSize: 16,
+                          align: "left",
+                          color: newTemplate.colors.defaultText || "#ffffff",
+                          fontStyle: "Arial",
+                        };
+                      }
+                      updateCard(updates);
                     }
                   }}
                   className="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
@@ -1480,8 +1757,20 @@ function App() {
             </SidebarSection>
 
             <SidebarSection title="Text & Typography">
-              {activeCard?.template === "steamRetro" ||
-              activeCard?.template === "gameCard" ? (
+              {activeCard?.template === "shortcuts" ? (
+                <ShortcutTextControl
+                  label="Shortcut Text"
+                  value={activeCard?.shortcutText || {
+                    text: "Cmd+C: Copy\nCmd+V: Paste\nCmd+Z: Undo",
+                    fontSize: 16,
+                    align: "left",
+                    color: "#ffffff",
+                    fontStyle: "Arial",
+                  }}
+                  onUpdate={(val) => updateCard({ shortcutText: val })}
+                />
+              ) : activeCard?.template === "steamRetro" ||
+                activeCard?.template === "gameCard" ? (
                 <>
                   <TextControl
                     label="Header Left Text"
@@ -1596,32 +1885,34 @@ function App() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-200 mb-2">
-                  Frame Design
-                </label>
-                <select
-                  value={activeCard?.outerFrameDesign}
-                  onChange={(e) =>
-                    updateCard({ outerFrameDesign: e.target.value })
-                  }
-                  className="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                >
-                  <option value="solid">Solid Color</option>
-                  <option value="wateryBlue">Watery Blue</option>
-                  <option value="crackedDesert">Cracked Desert</option>
-                  <option value="lavaFlow">Lava Flow</option>
-                  <option value="sandy">Sandy</option>
-                  <option value="galaxy">Galaxy</option>
-                  <option value="holographicShimmer">
-                    Holographic Shimmer
-                  </option>
-                </select>
-              </div>
+              {activeCard?.template !== "shortcuts" && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-200 mb-2">
+                    Frame Design
+                  </label>
+                  <select
+                    value={activeCard?.outerFrameDesign}
+                    onChange={(e) =>
+                      updateCard({ outerFrameDesign: e.target.value })
+                    }
+                    className="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="solid">Solid Color</option>
+                    <option value="wateryBlue">Watery Blue</option>
+                    <option value="crackedDesert">Cracked Desert</option>
+                    <option value="lavaFlow">Lava Flow</option>
+                    <option value="sandy">Sandy</option>
+                    <option value="galaxy">Galaxy</option>
+                    <option value="holographicShimmer">
+                      Holographic Shimmer
+                    </option>
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-slate-200 mb-2">
-                  Main Image
+                  {activeCard?.template === "shortcuts" ? "Background Image" : "Main Image"}
                 </label>
                 <input
                   ref={mainFileInputRef}
@@ -1635,7 +1926,11 @@ function App() {
                   className="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white hover:bg-slate-600"
                 >
                   {activeCard?.image
-                    ? "Change Main Image"
+                    ? activeCard?.template === "shortcuts" 
+                      ? "Change Background Image"
+                      : "Change Main Image"
+                    : activeCard?.template === "shortcuts"
+                    ? "Upload Background Image"
                     : "Upload Main Image"}
                 </button>
                 {activeCard?.image && (
@@ -1701,33 +1996,59 @@ function App() {
                 )}
               </div>
 
-              <div className="space-y-3 pt-4 border-t border-slate-700">
-                <label className="block text-sm font-semibold text-slate-200">
-                  Card Colors
-                </label>
-                {Object.entries(activeCard?.colors || {}).map(
-                  ([key, value]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <label className="text-sm text-slate-400 w-28 capitalize flex-shrink-0">
-                        {key.replace(/([A-Z])/g, " $1")}
-                      </label>
-                      <input
-                        type="color"
-                        value={value}
-                        onChange={(e) =>
-                          updateCard({
-                            colors: {
-                              ...activeCard.colors,
-                              [key]: e.target.value,
-                            },
-                          })
-                        }
-                        className="w-full h-8 rounded border-none cursor-pointer bg-slate-700"
-                      />
-                    </div>
-                  ),
-                )}
-              </div>
+              {activeCard?.template === "shortcuts" ? (
+                <div className="space-y-3 pt-4 border-t border-slate-700">
+                  <label className="block text-sm font-semibold text-slate-200">
+                    Card Colors
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-400 w-28 flex-shrink-0">
+                      Border
+                    </label>
+                    <input
+                      type="color"
+                      value={activeCard?.colors?.border || "#000000"}
+                      onChange={(e) =>
+                        updateCard({
+                          colors: {
+                            ...activeCard.colors,
+                            border: e.target.value,
+                          },
+                        })
+                      }
+                      className="w-full h-8 rounded border-none cursor-pointer bg-slate-700"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 pt-4 border-t border-slate-700">
+                  <label className="block text-sm font-semibold text-slate-200">
+                    Card Colors
+                  </label>
+                  {Object.entries(activeCard?.colors || {}).map(
+                    ([key, value]) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <label className="text-sm text-slate-400 w-28 capitalize flex-shrink-0">
+                          {key.replace(/([A-Z])/g, " $1")}
+                        </label>
+                        <input
+                          type="color"
+                          value={value}
+                          onChange={(e) =>
+                            updateCard({
+                              colors: {
+                                ...activeCard.colors,
+                                [key]: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full h-8 rounded border-none cursor-pointer bg-slate-700"
+                        />
+                      </div>
+                    ),
+                  )}
+                </div>
+              )}
             </SidebarSection>
 
             <SidebarSection title="Export Settings">

@@ -72,5 +72,12 @@
       "cornerBoxBorder": "#5499c7",
       "defaultText": "#000000"
     }
+  },
+  "shortcuts": {
+    "name": "Shortcuts",
+    "colors": {
+      "border": "#000000",
+      "defaultText": "#ffffff"
+    }
   }
 }
